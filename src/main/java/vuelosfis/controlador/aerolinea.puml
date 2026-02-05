@@ -1,0 +1,148 @@
+@startuml
+
+'--- ESTILO VISUAL ---
+skinparam classAttributeIconSize 0
+skinparam backgroundColor white
+skinparam roundcorner 10
+skinparam handwritten false
+skinparam packageStyle rectangle
+
+title Diagrama de Clases - Sistema VuelosFIS (MVC + SOLID)
+
+'--- PAQUETE MODELO (LOGICA Y DATOS) ---
+package "vuelosfis.modelo" {
+    
+    class Aeropuerto {
+        - String codigoIATA
+        - String nombre
+        - String ciudad
+        + Aeropuerto(codigo, nombre, ciudad)
+        + toString(): String
+    }
+
+    class Ruta {
+        - int duracionMinutos
+        + Ruta(Aeropuerto, Aeropuerto, int)
+    }
+
+    class Avion {
+        # String modelo
+        # int capacidad
+        + Avion(modelo, capacidad)
+        + getModelo(): String
+    }
+
+    class AvionComercial {
+        + AvionComercial(modelo, capacidad)
+    }
+
+    class Vuelo {
+        - String codigoVuelo
+        - LocalDateTime fechaSalida
+        - double precioBase
+        + Vuelo(codigo, ruta, fecha, avion, precio)
+        + getAvion(): Avion
+    }
+
+    class GestorArchivos {
+        - String RUTA_ARCHIVO
+        - String[] CODIGOS
+        - String[] CIUDADES
+        + leerVuelosDesdeArchivo(): List<Vuelo>
+        - generarItinerarioMallaCompleta(): void
+        - guardarVuelosEnArchivo(): void
+    }
+
+    '--- PATRÓN STRATEGY (SOLID: Open/Closed) ---
+    interface IEstrategiaPrecio {
+        + calcularPrecio(precioBase: double): double
+        + getDescripcion(): String
+    }
+
+    class EconomyLight implements IEstrategiaPrecio {
+        + calcularPrecio(base): double
+    }
+
+    class BusinessClass implements IEstrategiaPrecio {
+        + calcularPrecio(base): double
+    }
+}
+
+'--- PAQUETE VISTA (INTERFAZ GRÁFICA) ---
+package "vuelosfis.vista" {
+    
+    class VentanaPrincipal extends javax.swing.JFrame {
+        - JComboBox cmbOrigen
+        - JComboBox cmbDestino
+        - JTextField txtFechaIda
+        - JButton btnBuscar
+        - JButton btnReservar
+        + inicializarComponentes()
+    }
+
+    class TarjetaVuelo extends javax.swing.JPanel {
+        - JLabel lblHoraSalida
+        - JLabel lblPrecio
+        - JButton btnSeleccionar
+    }
+
+    class SelectorAsiento extends javax.swing.JDialog {
+        - List<String> asientosSeleccionados
+        - int cantidadPasajeros
+        + getAsientosFormateados(): String
+    }
+
+    class SelectorFecha extends javax.swing.JDialog {
+        - LocalDate fechaActual
+        - JTextField campoDestino
+        - actualizarCalendario(): void
+    }
+
+    class FormularioPasajero extends javax.swing.JDialog {
+        - JTextField txtNombre
+        - JTextField txtDocumento
+        + getDatosPasajero(): String
+    }
+    
+    class DialogosKLM {
+        + {static} mostrarMensaje(...)
+        + {static} mostrarConfirmacionPago(...)
+    }
+}
+
+'--- PAQUETE CONTROLADOR (CEREBRO) ---
+package "vuelosfis.controlador" {
+    
+    class ControladorVuelos implements java.awt.event.ActionListener {
+        - Vuelo vueloSeleccionadoActual
+        + iniciar()
+        + actionPerformed(ActionEvent)
+        - buscarYListarVuelos()
+        - reservarVuelo()
+        - generarBoleto()
+    }
+}
+
+'--- RELACIONES ---
+
+' MVC
+ControladorVuelos --> VentanaPrincipal : controla
+ControladorVuelos --> GestorArchivos : usa
+ControladorVuelos ..> Vuelo : manipula
+ControladorVuelos ..> IEstrategiaPrecio : usa para cobro
+
+' Relaciones del Modelo
+AvionComercial --|> Avion : hereda
+Vuelo *-- Ruta : tiene
+Vuelo *-- Avion : tiene
+Ruta *-- "2" Aeropuerto : origen/destino
+GestorArchivos ..> Vuelo : crea lista de
+
+' Relaciones de la Vista
+VentanaPrincipal *-- TarjetaVuelo : contiene multiples
+ControladorVuelos ..> SelectorAsiento : abre
+ControladorVuelos ..> SelectorFecha : abre
+ControladorVuelos ..> FormularioPasajero : abre
+ControladorVuelos ..> DialogosKLM : usa
+
+@enduml
